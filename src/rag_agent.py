@@ -39,7 +39,7 @@ class RagAgent:
         ]
 
         # Convert search results into a DataFrame for better rendering in Jupyter
-        search_results_df = pd.DataFrame([item.dict() for item in search_results_models])
+        search_results_df = pd.DataFrame([item.model_dump() for item in search_results_models])
 
         # Generate system response using OpenAI's completion
         completion = openai.chat.completions.create(
