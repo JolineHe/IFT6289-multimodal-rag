@@ -8,7 +8,7 @@ import os
 from data_models import *
 
 
-# NOTE: https://huggingface.co/datasets/MongoDB/airbnb_embeddings
+#NOTE: https://huggingface.co/datasets/MongoDB/airbnb_embeddings
 # NOTE: This dataset contains several records with datapoint representing an airbnb listing.
 
 

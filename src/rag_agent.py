@@ -4,6 +4,7 @@ from data_models import Address
 from vector_search import vector_search
 import pandas as pd
 import openai
+# from IPython.display import display, HTML
 
 
 class SearchResultItem(BaseModel):
@@ -67,4 +68,7 @@ if __name__ == "__main__":
     and not too far from resturants, can you recommend a place? 
     Include a reason as to why you've chosen your selection.
     """
+
+
+
     handle_user_query(query, db, collection)

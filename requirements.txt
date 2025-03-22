@@ -1,7 +1,7 @@
 datasets==3.4.1
 pandas==2.2.3
-openai==1.68.0
+openai
 pymongo==4.11.3
-pydantic=2.10.6
+pydantic==2.10.6
 gradio
 loguru
