@@ -1,10 +1,11 @@
 from typing import List, Optional
+from pymongo import MongoClient
 from pydantic import BaseModel
 from data_models import Address
-from vector_search import vector_search
+from vector_search_mongodb import VectorSearchMongoDB
 import pandas as pd
 import openai
-# from IPython.display import display, HTML
+import os
 
 
 class SearchResultItem(BaseModel):
@@ -17,19 +18,25 @@ class SearchResultItem(BaseModel):
     notes: Optional[str] = None
 
 
-def handle_user_query(query, db, collection):
-    # Assuming vector_search returns a list of dictionaries with keys 'title' and 'plot'
-    get_knowledge = vector_search(query, db, collection)
+class RagAgent:
+    def __init__(self, db, collection, vector_search):
+        self.db = db
+        self.collection = collection
+        self.vector_search = vector_search
 
-    # Check if there are any results
-    if not get_knowledge:
-        return "No results found.", "No source information available."
-        
-     # Convert search results into a list of SearchResultItem models
-    search_results_models = [
-        SearchResultItem(**result)
-        for result in get_knowledge
-    ]
+    def handle_user_query(self, query):
+        # Assuming vector_search returns a list of dictionaries with keys 'title' and 'plot'
+        get_knowledge = self.vector_search.do_vector_search(query)
+
+        # Check if there are any results
+        if not get_knowledge:
+            return "No results found.", "No source information available."
+
+        # Convert search results into a list of SearchResultItem models
+        search_results_models = [
+            SearchResultItem(**result)
+            for result in get_knowledge
+        ]
 
     # Convert search results into a DataFrame for better rendering in Jupyter
     search_results_df = pd.DataFrame([item.dict() for item in search_results_models])
@@ -63,12 +70,21 @@ def handle_user_query(query, db, collection):
 
 
 if __name__ == "__main__":
+    uri = os.getenv('MONGODB_URI')
+    client = MongoClient(uri)
+
+    db_name = 'airbnb_dataset'
+    collection_name = 'airbnb_embeddings'
+
+    db = client[db_name]
+    collection = db[collection_name]
+
+    vector_search = VectorSearchMongoDB(db, collection)
+    rag_agent = RagAgent(db, collection, vector_search)
+
     query = """
     I want to stay in a place that's warm and friendly, 
     and not too far from resturants, can you recommend a place? 
     Include a reason as to why you've chosen your selection.
     """
-
-
-
-    handle_user_query(query, db, collection)
+    rag_agent.handle_user_query(query)
