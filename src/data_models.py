@@ -31,6 +31,12 @@ class Address(BaseModel):
     country_code: str
     location: Location
 
+class Image_Describ(BaseModel):
+    thumbnail_url: str
+    medium_url: str
+    picture_url: str
+    xl_picture_url: str
+
 
 class Review(BaseModel):
     _id: str
@@ -82,3 +88,4 @@ class Listing(BaseModel):
     review_scores: dict
     reviews: List[Review]
     text_embeddings: List[float]
+    image_embeddings: List[float]
