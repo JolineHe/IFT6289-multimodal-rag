@@ -24,51 +24,41 @@ class RagAgent:
     def __init__(self, db, collection, vector_search):
         self.db = db
         self.collection = collection
-        self.vector_search = vector_search
-
-    def handle_user_query(self, query):
-        # Assuming vector_search returns a list of dictionaries with keys 'title' and 'plot'
-        get_knowledge = self.vector_search.do_vector_search(query)
-class RagAgent:
-    def __init__(self, db, collection, vector_search):
-        self.db = db
-        self.collection = collection
         self.vector_search = vector_search    
 
     def handle_user_query(self, query):
         # Assuming vector_search returns a list of dictionaries with keys 'title' and 'plot'
         get_knowledge = self.vector_search.do_vector_search(query)
 
-            # Check if there are any results
-            if not get_knowledge:
-                return "No results found.", "No source information available."
+        # Check if there are any results
+        if not get_knowledge:
+            return "No results found.", "No source information available."
+
+        # Convert search results into a list of SearchResultItem models
+        search_results_models = [
+            SearchResultItem(**result)
+            for result in get_knowledge
+        ]
+
     
-           # Convert search results into a list of SearchResultItem models
-            search_results_models = [
-                SearchResultItem(**result)
-                for result in get_knowledge
+        # Convert search results into a DataFrame for better rendering in Jupyter
+        search_results_df = pd.DataFrame([item.model_dump() for item in search_results_models])
+
+        # Generate system response using OpenAI's completion
+        completion = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a airbnb listing recommendation system."},
+                {
+                    "role": "user",
+                    "content": f"Answer this user query: {query} with the following context:\n{search_results_df}"
+                }
             ]
+        )
 
-        # Convert search results into a DataFrame for better rendering in Jupyter
-        search_results_df = pd.DataFrame([item.model_dump() for item in search_results_models])
-        # Convert search results into a DataFrame for better rendering in Jupyter
-        search_results_df = pd.DataFrame([item.model_dump() for item in search_results_models])
-
-            # Generate system response using OpenAI's completion
-            completion = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a airbnb listing recommendation system."},
-                    {
-                        "role": "user",
-                        "content": f"Answer this user query: {query} with the following context:\n{search_results_df}"
-                    }
-                ]
-            )
-
-            system_response = completion.choices[0].message.content
+        system_response = completion.choices[0].message.content
 
         # Print User Question, System Response, and Source Information
         print(f"- User Question:\n{query}\n")
@@ -77,8 +67,8 @@ class RagAgent:
         print(f"- User Question:\n{query}\n")
         print(f"- System Response:\n{system_response}\n")
 
-            # Return structured response and source info as a string
-            return system_response
+        # Return structured response and source info as a string
+        return system_response
 
 
 if __name__ == "__main__":
