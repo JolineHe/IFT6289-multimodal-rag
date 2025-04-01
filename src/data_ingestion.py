@@ -1,5 +1,7 @@
 import os
 from pymongo import MongoClient
+import os
+from pymongo import MongoClient
 from datasets import load_dataset
 from bson import json_util
 from dotenv import load_dotenv
@@ -18,8 +20,8 @@ collection_name = 'airbnb_embeddings'  # Change this to your actual collection n
 
 collection = client[db_name][collection_name]
 
-# NOTE: https://huggingface.co/datasets/MongoDB/airbnb_embeddings
-# NOTE: This dataset contains several records with datapoint representing an airbnb listing.
+#NOTE: https://huggingface.co/datasets/MongoDB/airbnb_embeddings
+#NOTE: This dataset contains several records with datapoint representing an airbnb listing.
 dataset = load_dataset("MongoDB/airbnb_embeddings")
 
 insert_data = []
@@ -43,3 +45,5 @@ if len(insert_data) > 0:
     print("{} records ingested".format(len(insert_data)))
 
 print("All records ingested successfully!")
+
+dataset = load_dataset("MongoDB/airbnb_embeddings")

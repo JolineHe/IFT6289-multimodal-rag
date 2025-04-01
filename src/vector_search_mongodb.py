@@ -7,11 +7,12 @@ from dotenv import load_dotenv
 
 text_embedding_field_name = "text_embeddings"
 vector_search_index_name_text = "vector_index_text"
+IMG_EMBED_SIZE = 512
+TEXT_EMBED_SIZE = 1536
 
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
 
 class VectorSearchMongoDB:
     def __init__(self, db, collection):
@@ -25,7 +26,7 @@ class VectorSearchMongoDB:
                     "dynamic": True,
                     "fields": {
                         text_embedding_field_name: {
-                            "dimensions": 1536,
+                            "dimensions": TEXT_EMBED_SIZE,
                             "similarity": "cosine",
                             "type": "knnVector",
                         }
@@ -36,7 +37,7 @@ class VectorSearchMongoDB:
         )
 
         index_exists = False
-        for index in self.collection.list_indexes():
+        for index in self.collection.list_search_indexes():
             if index['name'] == vector_search_index_name_text:
                 index_exists = True
                 break
@@ -60,7 +61,7 @@ class VectorSearchMongoDB:
         try:
             embedding = openai.embeddings.create(
                 input=text,
-                model="text-embedding-3-small", dimensions=1536).data[0].embedding
+                model="text-embedding-3-small", dimensions=TEXT_EMBED_SIZE).data[0].embedding
             return embedding
         except Exception as e:
             print(f"Error in get_embedding: {e}")
@@ -115,6 +116,6 @@ if __name__ == "__main__":
     collection = db[collection_name]
 
     vector_search_mongodb = VectorSearchMongoDB(db, collection)
-    # vector_search_mongodb.create_vector_search_index()
+    vector_search_mongodb.create_vector_search_index()
     results = vector_search_mongodb.do_vector_search("luxury apartment in the heart of downtown Montreal")
     print(results)
