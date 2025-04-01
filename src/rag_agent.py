@@ -84,18 +84,6 @@ if __name__ == "__main__":
     vector_search = VectorSearchMongoDB(db, collection)
     rag_agent = RagAgent(db, collection, vector_search)
 
-    uri = os.getenv('MONGODB_URI')
-    client = MongoClient(uri)
-
-    db_name = 'airbnb_dataset'
-    collection_name = 'airbnb_embeddings'
-
-    db = client[db_name]
-    collection = db[collection_name]
-
-    vector_search = VectorSearchMongoDB(db, collection)
-    rag_agent = RagAgent(db, collection, vector_search)
-
     query = """
     I want to stay in a place that's warm and friendly, 
     and not too far from resturants, can you recommend a place that is similar as the image I provide? 
