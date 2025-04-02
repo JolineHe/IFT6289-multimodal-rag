@@ -109,4 +109,4 @@ if __name__ == "__main__":
     and not too far from resturants, can you recommend a place that is similar as the image I provide? 
     Include a reason as to why you've chosen your selection. Also give me the airbnb link and image link
     """
-    rag_agent.handle_user_query([query_text, img_path])
+    rag_agent.handle_user_query([query_text])

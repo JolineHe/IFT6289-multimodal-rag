@@ -45,8 +45,8 @@ class MultiModalVectorSearchMongoDB:
     def __init__(self, db, collection):
         self.db = db
         self.collection = collection
-        self._create_indexes('text')
-        self._create_indexes('image')
+        # self._create_indexes('text')
+        # self._create_indexes('image')
         self._load_img_encoder()
 
     def _load_img_encoder(self):
@@ -297,7 +297,9 @@ class MultiModalVectorSearchMongoDB:
 
     def do_vector_search(self, user_query, alpha_text=0.5):
         user_query_text = user_query[0]
-        user_query_img_path = user_query[1]
+        user_query_img_path = ''
+        if len(user_query) > 1:
+            user_query_img_path = user_query[1]
         query_embedding_text = self.get_text_embedding(user_query_text)
         query_embedding_img = self.get_img_embedding(user_query_img_path)
 

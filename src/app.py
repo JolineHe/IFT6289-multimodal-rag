@@ -21,7 +21,10 @@ rag_agent = RagAgent(db, collection, vector_search)
 
 
 def slow_echo(query, history):
-    response = rag_agent.handle_user_query([query['text'],query['files'][0]])
+    if len(query.get('files') ) == 0:
+        response = rag_agent.handle_user_query([query['text']])
+    else:
+        response = rag_agent.handle_user_query([query['text'], query['files'][0]])
     for i in range(len(response)):
         time.sleep(0.01)
         yield "" + response[: i + 1]
