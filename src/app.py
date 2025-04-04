@@ -7,6 +7,9 @@ from utils.mongodb import get_collection
 collection = get_collection()
 rag_agent = RagAgent(collection)
 
+# TODO: 
+# add restriction for search only by image
+
 def slow_echo(query, history):   
     response = rag_agent.handle_user_query(query)
     for i in range(len(response)):
@@ -23,7 +26,7 @@ demo = gr.ChatInterface(
     #     {"text": "No files", "files": []}
     # ],
     multimodal=True,
-    textbox=gr.MultimodalTextbox(file_count="multiple", file_types=["image"], sources=["upload", "microphone"])
+    textbox=gr.MultimodalTextbox(file_count="single", file_types=["image"], sources=["upload"])
 )
 
 
