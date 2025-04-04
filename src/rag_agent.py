@@ -42,7 +42,7 @@ class RagAgent:
     def handle_user_query(self, query,other_params=dict()):
         # Todo
         # How to split each input case to one specific search engine, need to redefine clearly.
-        if len(query.get('files') ) == 0: # input contains texts, no image, no params with come here.
+        if len(query.get('files') ) == 0: # input contains texts, no image, no params will come here.
             get_knowledge = self.hybrid_search.do_search(query['text'])
         else: # if the input contains (texts, images) and or params, will use this part
             get_knowledge = self.multimodal_search.do_search(
