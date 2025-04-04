@@ -8,3 +8,15 @@
 @Project: IFT6289-multimodal-rag 
 @Desc   : Please enter here
 '''
+import os
+def is_image_file(filename):
+    '''
+    Return true if filename ends with a known image file.
+    :param filename: The image filename with path
+    :type filename: str
+    :return: True/False
+    :rtype: Boolean
+    '''
+    image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
+    ext = os.path.splitext(filename.lower())[1]
+    return ext in image_extensions

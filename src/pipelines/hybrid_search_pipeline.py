@@ -9,11 +9,11 @@ def build_hybrid_search_stage(
     full_text_weight: float = 0.3,
     num_candidates: int = 100,
     limit: int = 20,
-    final_limit: int = 10) -> List[Dict[str, Any]]:
+    final_limit: int = 5) -> List[Dict[str, Any]]:
     """Performs hybrid search combining vector and full-text search results.
 
     This pipeline executes both vector similarity search and full-text search on MongoDB collections,
-    combining the results using Reciprocal Rank Fusion (RRF). The vector search finds semantically 
+    combining the results using Reciprocal Rank Fusion (RRF). The vector search finds semantically
     similar documents based on embeddings, while full-text search matches text patterns.
 
     Args:
@@ -76,7 +76,15 @@ def build_hybrid_search_stage(
             "$project": {
                 "vs_score": 1,
                 "_id": "$docs._id",
-                "name": "$docs.name"
+                "name": "$docs.name",
+                "accommodates": "$docs.accommodates",
+                "address": "$docs.address",
+                "summary": "$docs.summary",
+                "description": "$docs.description",
+                "neighborhood_overview": "$docs.neighborhood_overview",
+                "notes": "$docs.notes",
+                "images": "$docs.images",
+                # "search_score": "$vs_score"
             }
         },
         {
@@ -126,7 +134,14 @@ def build_hybrid_search_stage(
                         "$project": {
                             "fts_score": 1,
                             "_id": "$docs._id",
-                            "name": "$docs.name"
+                            "name": "$docs.name",
+                            "accommodates": "$docs.accommodates",
+                            "address": "$docs.address",
+                            "summary": "$docs.summary",
+                            "description": "$docs.description",
+                            "neighborhood_overview": "$docs.neighborhood_overview",
+                            "notes": "$docs.notes",
+                            "images": "$docs.images"
                         }
                     }
                 ]
@@ -136,6 +151,13 @@ def build_hybrid_search_stage(
             "$group": {
                 "_id": "$_id",
                 "name": {"$first": "$name"},
+                "accommodates": {"$first": "$accommodates"},
+                "address": {"$first": "$address"},
+                "summary": {"$first": "$summary"},
+                "description": {"$first": "$description"},
+                "neighborhood_overview": {"$first": "$neighborhood_overview"},
+                "notes": {"$first": "$notes"},
+                "images": {"$first": "$images"},
                 "vs_score": {"$max": "$vs_score"},
                 "fts_score": {"$max": "$fts_score"}
             }
@@ -144,20 +166,34 @@ def build_hybrid_search_stage(
             "$project": {
                 "_id": 1,
                 "name": 1,
+                "accommodates": 1,
+                "address": 1,
+                "summary": 1,
+                "description": 1,
+                "neighborhood_overview": 1,
+                "notes": 1,
+                "images": 1,
                 "vs_score": {"$ifNull": ["$vs_score", 0]},
                 "fts_score": {"$ifNull": ["$fts_score", 0]}
             }
         },
         {
             "$project": {
-                "score": {"$add": ["$fts_score", "$vs_score"]},
+                "search_score": {"$add": ["$fts_score", "$vs_score"]},
                 "_id": 1,
                 "name": 1,
+                "accommodates": 1,
+                "address": 1,
+                "summary": 1,
+                "description": 1,
+                "neighborhood_overview": 1,
+                "notes": 1,
+                "images": 1,
                 "vs_score": 1,
                 "fts_score": 1
             }
         },
-        {"$sort": {"score": -1}},
+        {"$sort": {"search_score": -1}},
         {"$limit": final_limit}
     ]
     return pipeline

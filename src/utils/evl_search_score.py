@@ -8,6 +8,8 @@
 @Project: IFT6289-multimodal-rag 
 @Desc   : Please enter here
 '''
+import os.path
+
 import matplotlib.pyplot as plt
 import requests
 from io import BytesIO
@@ -15,7 +17,7 @@ import pandas as pd
 from PIL import Image
 
 
-def check_pic_result(df, savepath='./data', save_title=''):
+def check_pic_result(df, savepath='../data', save_title=''):
     # import requests
 
     # Determine Grid Size (Auto-adjust for number of images)
@@ -40,7 +42,11 @@ def check_pic_result(df, savepath='./data', save_title=''):
         axes[j].axis("off")
 
     plt.tight_layout()
-    plt.savefig(f'{savepath}/{save_title}.png', dpi=fig.dpi)
+
+    if not os.path.exists(savepath):
+        os.makedirs(savepath)
+
+    plt.savefig(f'{savepath}/{save_title}.png', dpi=60)
 
     # plt.show()
 
@@ -64,12 +70,14 @@ def load_image(url):
         return Image.open(url)
 
 
-def evl_search_result(results, img_gt_path, title='text'):
+def evl_search_result(results, img_gt_path, title='text',savepath='../data'):
     print('===============================')
     results_pics = ['' if i.get('images').get('picture_url') is None else i['images']['picture_url'] for i in results]
     score_name = 'search_score'
-    if title in ['image', 'text']:
-        score_name = f'{title}_search_score'
+    if title.find('by_text')>=0:
+        score_name = 'text_search_score'
+    elif title.find('by_image')>=0:
+        score_name = 'image_search_score'
     scores = [float(i[score_name]) for i in results]
     df_out = pd.DataFrame({
         'score': scores + [1],
@@ -79,4 +87,4 @@ def evl_search_result(results, img_gt_path, title='text'):
     df_out["image"] = df_out["image_url"].apply(load_image)
     df_out = df_out.sort_values(by="score", ascending=True)
 
-    check_pic_result(df_out, save_title=title)
+    check_pic_result(df_out, save_title=title, savepath = savepath)

@@ -1,7 +1,6 @@
 from typing import List, Optional
-from pymongo import MongoClient
 from pydantic import BaseModel
-from data_models import Address, Image_Describ
+from data_models import Address, ImageDescrib
 from hybrid_search import HybridSearch
 from multimodal_search import MultiModalSearch
 from utils.logger import LOG
@@ -9,7 +8,7 @@ import pandas as pd
 import openai
 import os
 
-
+ALPHA_TEXT = 0.4
 class SearchResultItem(BaseModel):
     name: str
     accommodates: Optional[int] = None
@@ -18,7 +17,7 @@ class SearchResultItem(BaseModel):
     description: Optional[str] = None
     neighborhood_overview: Optional[str] = None
     notes: Optional[str] = None
-    images: Image_Describ
+    images: ImageDescrib
     search_score: Optional[float] = None
 
 def prompt_topk_search_score(top_results):
@@ -40,11 +39,17 @@ class RagAgent:
         self.hybrid_search = HybridSearch(collection)
         self.multimodal_search = MultiModalSearch(collection)
 
-    def handle_user_query(self, query):
-        if len(query.get('files') ) == 0:
+    def handle_user_query(self, query,other_params=dict()):
+        # Todo
+        # How to split each input case to one specific search engine, need to redefine clearly.
+        if len(query.get('files') ) == 0: # input contains texts, no image, no params with come here.
             get_knowledge = self.hybrid_search.do_search(query['text'])
-        else:
-            get_knowledge = self.multimodal_search.do_search([query['text'], query['files'][0]])
+        else: # if the input contains (texts, images) and or params, will use this part
+            get_knowledge = self.multimodal_search.do_search(
+                [query['text'], query['files'][0]],
+                alpha_text=ALPHA_TEXT,
+                other_params=other_params
+            )
 
         # Check if there are any results
         if not get_knowledge:
@@ -95,19 +100,12 @@ class RagAgent:
 
 
 if __name__ == "__main__":
-    uri = os.getenv('MONGODB_URI')
-    client = MongoClient(uri)
+    from utils.mongodb import get_collection
 
-    db_name = 'airbnb_dataset'
-    collection_name = 'airbnb_embeddings'
-
-    db = client[db_name]
-    collection = db[collection_name]
-
-    vector_search = MultiModalSearch(db, collection)
-    rag_agent = RagAgent(db, collection, vector_search)
+    collection = get_collection()
+    rag_agent = RagAgent(collection)
     # load an image
-    img_path = './data/image1.png'
+    img_path = '../data/image_plateau_montRoyal.png'
 
     query_text = """
     I want to stay in a place that's warm and friendly, 
