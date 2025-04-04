@@ -1,10 +1,13 @@
 from typing import List, Optional
 from pymongo import MongoClient
+from pymongo import MongoClient
 from pydantic import BaseModel
 from data_models import Address
 from vector_search_mongodb import VectorSearchMongoDB
+from vector_search_mongodb import VectorSearchMongoDB
 import pandas as pd
 import openai
+import os
 import os
 
 
@@ -21,7 +24,7 @@ class RagAgent:
     def __init__(self, db, collection, vector_search):
         self.db = db
         self.collection = collection
-        self.vector_search = vector_search
+        self.vector_search = vector_search    
 
     def handle_user_query(self, query):
         # Assuming vector_search returns a list of dictionaries with keys 'title' and 'plot'
@@ -37,6 +40,7 @@ class RagAgent:
             for result in get_knowledge
         ]
 
+    
         # Convert search results into a DataFrame for better rendering in Jupyter
         search_results_df = pd.DataFrame([item.model_dump() for item in search_results_models])
 
@@ -56,6 +60,9 @@ class RagAgent:
 
         system_response = completion.choices[0].message.content
 
+        # Print User Question, System Response, and Source Information
+        print(f"- User Question:\n{query}\n")
+        print(f"- System Response:\n{system_response}\n")
         # Print User Question, System Response, and Source Information
         print(f"- User Question:\n{query}\n")
         print(f"- System Response:\n{system_response}\n")
