@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.DS_Store
+
+to_delete/
+logs/
 
 # gradio
 .gradio
