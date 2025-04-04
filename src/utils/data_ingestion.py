@@ -45,5 +45,3 @@ if len(insert_data) > 0:
     print("{} records ingested".format(len(insert_data)))
 
 print("All records ingested successfully!")
-
-dataset = load_dataset("MongoDB/airbnb_embeddings")
