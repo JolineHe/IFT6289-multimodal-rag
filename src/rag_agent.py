@@ -6,7 +6,6 @@ from hybrid_search import HybridSearch
 from multimodal_search import MultiModalSearch
 from utils.logger import LOG
 from utils.session_history import get_session_history
-import pandas as pd
 import os
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -40,9 +39,11 @@ class RagAgent:
             List of search results with relevant information
         """
         if len(query.get('files', [])) == 0:
-            get_knowledge = self.hybrid_search.do_search(query['text'])
+            LOG.info(f"query: {query}")
+            get_knowledge = self.hybrid_search.do_search(query.get('text'))
         else:
-            get_knowledge = self.multimodal_search.do_search([query['text'], query['files'][0]])
+            LOG.info(f"query: {query}")
+            get_knowledge = self.multimodal_search.do_search([query.get('text'), query.get('files')[0]])
 
         # Check if there are any results
         if not get_knowledge:
@@ -87,11 +88,14 @@ class RagAgent:
             ("system", "You are a query classifier. Your task is to determine if the user is asking about Airbnb property recommendations. Respond with only 'yes' or 'no'."),
             ("human", "Is this query about Airbnb property recommendations? Query: {query}")
         ])
-        
-        query_type_response = self.chat(query_type_prompt.format_messages(query=query['text']))
+        LOG.info(f"query: {query}")
+        query_text = query.get('text')
+        query_files = query.get('files')
+        LOG.info(f"query_text: {query_text}")
+        LOG.info(f"query_files: {query_files}")
+        query_type_response = self.chat(query_type_prompt.format_messages(query=query_text))
         is_property_query = query_type_response.content.lower().strip() == 'yes'
-        has_image = len(query.get('files', [])) > 0
-
+        has_image = len(query_files) > 0
         # If it's a property query or has an image, retrieve knowledge
         context = []
         if is_property_query or has_image:
@@ -158,8 +162,7 @@ if __name__ == "__main__":
     db = client[db_name]
     collection = db[collection_name]
 
-    vector_search = MultiModalSearch(db, collection)
-    rag_agent = RagAgent(db, collection, vector_search)
+    rag_agent = RagAgent(collection)
     # load an image
     img_path = './data/image1.png'
 
@@ -168,4 +171,4 @@ if __name__ == "__main__":
     and not too far from resturants, can you recommend a place that is similar as the image I provide? 
     Include a reason as to why you've chosen your selection. Also give me the airbnb link and image link
     """
-    rag_agent.handle_user_query([query_text, img_path])
+    rag_agent.response_to_user({'text': query_text, 'files': [img_path]})
