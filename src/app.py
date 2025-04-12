@@ -2,39 +2,31 @@ from rag_agent import RagAgent
 import gradio as gr
 import time
 from utils.mongodb import get_collection
+import uuid
+from utils.logger import LOG
+from langchain.chat_models import ChatOpenAI
 from utils.const_db_fields import PROPERTY_TYPES
 
 collection = get_collection()
 rag_agent = RagAgent(collection)
 
-def slow_echo(query,history,review_rank,app_type):
-    other_params = dict() if review_rank==0 and app_type is None else {'review_rank': review_rank,"property_type": app_type}
-    response = rag_agent.handle_user_query(
-        query,
-        other_params = other_params
-    )
+# TODO: 
+# add restriction for search only by image
+session_id = None
+
+def slow_echo(user_message, history):
+    global session_id
+    if session_id is None:
+        session_id = str(uuid.uuid4())
+        LOG.info(f"history is empty, create a new session_id:::::::: ,{session_id}")
+    response = rag_agent.response_to_user(user_message, session_id)
     for i in range(len(response)):
         time.sleep(0.01)
         yield "" + response[: i + 1]
 
-# demo = gr.ChatInterface(
-#     slow_echo,
-#     type="messages",
-#     flagging_mode="manual",
-#     flagging_options=["Like", "Spam", "Inappropriate", "Other"],
-#     save_history=True,
-#     # examples=[
-#     #     {"text": "No files", "files": []}
-#     # ],
-#     multimodal=True,
-#     textbox=gr.MultimodalTextbox(file_count="multiple", file_types=["image"], sources=["upload", "microphone"]),
-#     additional_inputs=[
-#         gr.CheckboxGroup(choices=["Option A", "Option B", "Option C"], label="search type")
-#     ]
-# )
 
 with gr.Blocks() as demo:
-    # gr.Markdown("## Chatbot with Parameter Controls")
+    chatbot = gr.Chatbot(type="messages")
 
     with gr.Row():
         rank_slider = gr.Slider(0.0, 1.0, step=0.1, label="review_rank",
@@ -43,18 +35,28 @@ with gr.Blocks() as demo:
             choices=PROPERTY_TYPES,
             value=None,
             label="app_type"
-        )
-
-    chatbot = gr.ChatInterface(
+    )
+    gr.ChatInterface(   
         fn=slow_echo,
+        chatbot=chatbot,
         type="messages",
         flagging_mode="manual",
         flagging_options=["Like", "Spam", "Inappropriate", "Other"],
-        save_history=True,
-        textbox=gr.MultimodalTextbox(file_count="multiple", file_types=["image"], sources=["upload", "microphone"]),
+        multimodal=True,
+        textbox=gr.MultimodalTextbox(file_count="single", file_types=["image"], sources=["upload"]),
         additional_inputs=[rank_slider, search_dropdown],
-        # title="Multimodal Search Bot",
-        # description="Adjust parameters before sending a message."
+    )
+    with gr.Row():
+        clear_session = gr.Button("New Chat")
+        
+    def reset_session():
+        global session_id
+        session_id = None
+        return None
+        
+    clear_session.click(
+        fn=reset_session,
+        outputs=chatbot
     )
 
 

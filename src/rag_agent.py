@@ -4,11 +4,12 @@ from data_models import Address, ImageDescrib
 from hybrid_search import HybridSearch
 from multimodal_search import MultiModalSearch
 from utils.logger import LOG
-import pandas as pd
-import openai
+from utils.session_history import get_session_history
 import os
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
-ALPHA_TEXT = 0.4
 class SearchResultItem(BaseModel):
     name: str
     accommodates: Optional[int] = None
@@ -19,41 +20,34 @@ class SearchResultItem(BaseModel):
     notes: Optional[str] = None
     images: ImageDescrib
     search_score: Optional[float] = None
+    reviews: Optional[List[Dict[str, Any]]] = None
 
-def prompt_topk_search_score(top_results):
-    top_results_text = "\n\n".join(
-        [f"Result {i+1} (Score: {doc['search_score']}): "
-         f"{doc['text']}" for i, doc in enumerate(top_results)]
-    )
-
-    prompt_text = f"""Here are the top search results, ranked by similarity score:
-    
-    {top_results_text}
-    
-    Please synthesize the best answer using the most relevant information.
-    """
 
 class RagAgent:
     def __init__(self, collection):
         self.collection = collection
         self.hybrid_search = HybridSearch(collection)
         self.multimodal_search = MultiModalSearch(collection)
+        self.chat = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-    def handle_user_query(self, query,other_params=dict()):
-        # Todo
-        # How to split each input case to one specific search engine, need to redefine clearly.
-        if len(query.get('files') ) == 0: # input contains texts, no image, no params will come here.
-            get_knowledge = self.hybrid_search.do_search(query['text'])
-        else: # if the input contains (texts, images) and or params, will use this part
-            get_knowledge = self.multimodal_search.do_search(
-                [query['text'], query['files'][0]],
-                alpha_text=ALPHA_TEXT,
-                other_params=other_params
-            )
+    def retrieve_knowledge(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Retrieve relevant knowledge from MongoDB based on the query.
+        Args:
+            query: Dictionary containing 'text' and optionally 'files'
+        Returns:
+            List of search results with relevant information
+        """
+        if len(query.get('files', [])) == 0:
+            LOG.info(f"query: {query}")
+            get_knowledge = self.hybrid_search.do_search(query.get('text'))
+        else:
+            LOG.info(f"query: {query}")
+            get_knowledge = self.multimodal_search.do_search([query.get('text'), query.get('files')[0]])
 
         # Check if there are any results
         if not get_knowledge:
-            return "No results found.", "No source information available."
+            return []
 
         # Convert search results into a list of SearchResultItem models
         search_results_models = [
@@ -61,48 +55,114 @@ class RagAgent:
             for result in get_knowledge
         ]
 
-        # Convert search results into a DataFrame for better rendering in Jupyter
-        search_results_df = pd.DataFrame([item.model_dump() for item in search_results_models])
-        df_img = pd.json_normalize(search_results_df['images'])
-        search_results_df['images'] = df_img['picture_url'].values.tolist()
+        # Prepare the context for LangChain
+        context = [{
+            'content': f"""
+            Name: {row.name}
+            Description: {row.description}
+            Summary: {row.summary}
+            Neighborhood: {row.neighborhood_overview}
+            Notes: {row.notes}
+            Search Score: {row.search_score}
+            Image URL: {row.images}
+            Reviews: {row.reviews}
+            """,
+            'score': row.search_score
+        } for row in search_results_models]
+        LOG.info(f"context: {context}")
+        return context
 
-        search_results_df = search_results_df.sort_values(by="search_score", ascending=False)
+    def response_to_user(self, query: Dict[str, Any], session_id: str = "default") -> str:
+        """
+        Generate a response to the user query using LLM and session history.
+        Args:
+            query: Dictionary containing 'text' and optionally 'files'
+            session_id: Unique identifier for the conversation session
+        Returns:
+            Generated response string
+        """
+        # Get or create session history
+        history = get_session_history(session_id)
 
-        # Generate system response using OpenAI's completion
-        completion = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a airbnb listing recommendation system."},
-                {
-                    "role": "system",
-                    "content": f"Please use the result with high search_score at {search_results_df.search_score}.",},
-                {
-                    "role": "system",
-                    "content": f"Please search the image link from \n{search_results_df.images}"},
-                {
-                    "role": "user",
-                    "content": f"Answer this user query: {query} with the following context:\n{search_results_df}"
-                }
-            ]
-        )
+        # First, determine if the query is about property recommendations
+        query_type_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a query classifier. Your task is to determine if the user is asking about Airbnb property recommendations. Respond with only 'yes' or 'no'."),
+            ("human", "Is this query about Airbnb property recommendations? Query: {query}")
+        ])
+        LOG.info(f"query: {query}")
+        query_text = query.get('text')
+        query_files = query.get('files')
+        LOG.info(f"query_text: {query_text}")
+        LOG.info(f"query_files: {query_files}")
+        query_type_response = self.chat(query_type_prompt.format_messages(query=query_text))
+        is_property_query = query_type_response.content.lower().strip() == 'yes'
+        has_image = len(query_files) > 0
+        # If it's a property query or has an image, retrieve knowledge
+        context = []
+        if is_property_query or has_image:
+            context = self.retrieve_knowledge(query)
 
-        system_response = completion.choices[0].message.content
+        # Create different prompt templates based on the query type
+        if is_property_query or has_image:
+            prompt_template = ChatPromptTemplate.from_messages([
+                ("system", """You are an Airbnb listing recommendation system. Please:
+                1. Respond in the same language as the user
+                2. If the user is asking for property recommendations:
+                   - Prioritize results with higher search scores
+                   - Include the Airbnb listing URL and image URL
+                   - Explain why you chose these properties
+                   - Highlight features that match the user's criteria
+                3. If the user has provided an image, consider visual similarity in your recommendations
+                4. Be friendly and helpful in your responses"""),
+                *history.messages,
+                ("human", "Answer this user query: {query} with the following context:\n{context}")
+            ])
+        else:
+            prompt_template = ChatPromptTemplate.from_messages([
+                ("system", """You are an Airbnb customer service assistant. Please:
+                1. Respond in the same language as the user
+                2. Be friendly and helpful
+                3. If you don't know the answer, say so politely
+                4. Keep responses concise and relevant"""),
+                *history.messages,
+                ("human", "Answer this user query: {query}")
+            ])
+        
+        # Format the prompt with the actual values
+        if is_property_query or has_image:
+            formatted_messages = prompt_template.format_messages(
+                query=query,
+                context=context if context else "No specific property information available."
+            )
+        else:
+            formatted_messages = prompt_template.format_messages(
+                query=query
+            )
 
-        # Print User Question, System Response, and Source Information
+        # Get response from LLM
+        response = self.chat(formatted_messages)
+        system_response = response.content
+
+        # Add messages to history
+        history.add_user_message(str(query))
+        history.add_ai_message(system_response)
+
         LOG.info(f"- User Question:\n{query}\n")
         LOG.info(f"- System Response:\n{system_response}\n")
 
-
-        # Return structured response and source info as a string
         return system_response
 
 
 if __name__ == "__main__":
-    from utils.mongodb import get_collection
+    uri = os.getenv('MONGODB_URI')
+    client = MongoClient(uri)
 
-    collection = get_collection()
+    db_name = 'airbnb_dataset'
+    collection_name = 'airbnb_embeddings'
+
+    db = client[db_name]
+    collection = db[collection_name]
+
     rag_agent = RagAgent(collection)
     # load an image
     img_path = '../data/image_plateau_montRoyal.png'
@@ -112,4 +172,4 @@ if __name__ == "__main__":
     and not too far from resturants, can you recommend a place that is similar as the image I provide? 
     Include a reason as to why you've chosen your selection. Also give me the airbnb link and image link
     """
-    rag_agent.handle_user_query([query_text, img_path])
+    rag_agent.response_to_user({'text': query_text, 'files': [img_path]})
