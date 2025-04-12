@@ -27,7 +27,7 @@ def get_text_embedding(text):
 
 def get_img_embedding(img_path):
     clip_model = CLIPModel.from_pretrained(CLIP_MODEL_PATH)
-    clip_processor = CLIPProcessor.from_pretrained(CLIP_MODEL_PATH)
+    clip_processor = CLIPProcessor.from_pretrained(CLIP_MODEL_PATH, use_fast=True)
     if not os.path.exists(img_path):
             return None
     try:

@@ -13,7 +13,7 @@ def build_hybrid_search_stage(
     """Performs hybrid search combining vector and full-text search results.
 
     This pipeline executes both vector similarity search and full-text search on MongoDB collections,
-    combining the results using Reciprocal Rank Fusion (RRF). The vector search finds semantically 
+    combining the results using Reciprocal Rank Fusion (RRF). The vector search finds semantically
     similar documents based on embeddings, while full-text search matches text patterns.
 
     Args:
@@ -80,11 +80,11 @@ def build_hybrid_search_stage(
                 "accommodates": "$docs.accommodates",
                 "address": "$docs.address",
                 "summary": "$docs.summary",
-                "description": "$docs.description", 
+                "description": "$docs.description",
                 "neighborhood_overview": "$docs.neighborhood_overview",
                 "notes": "$docs.notes",
                 "images": "$docs.images",
-                "search_score": "$vs_score"
+                # "search_score": "$vs_score"
             }
         },
         {
@@ -179,7 +179,7 @@ def build_hybrid_search_stage(
         },
         {
             "$project": {
-                "score": {"$add": ["$fts_score", "$vs_score"]},
+                "search_score": {"$add": ["$fts_score", "$vs_score"]},
                 "_id": 1,
                 "name": 1,
                 "accommodates": 1,
@@ -193,7 +193,7 @@ def build_hybrid_search_stage(
                 "fts_score": 1
             }
         },
-        {"$sort": {"score": -1}},
+        {"$sort": {"search_score": -1}},
         {"$limit": final_limit}
     ]
     return pipeline

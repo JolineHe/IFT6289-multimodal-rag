@@ -8,3 +8,4 @@ loguru==0.7.3
 python-dotenv==1.0.1
 transformers==4.50.3
 torch==2.2.2
+torchvision==0.21.0
