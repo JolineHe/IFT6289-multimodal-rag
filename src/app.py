@@ -5,6 +5,7 @@ from utils.mongodb import get_collection
 import uuid
 from utils.logger import LOG
 from langchain.chat_models import ChatOpenAI
+from utils.const_db_fields import PROPERTY_TYPES
 
 collection = get_collection()
 rag_agent = RagAgent(collection)
@@ -26,6 +27,15 @@ def slow_echo(user_message, history):
 
 with gr.Blocks() as demo:
     chatbot = gr.Chatbot(type="messages")
+
+    with gr.Row():
+        rank_slider = gr.Slider(0.0, 1.0, step=0.1, label="review_rank",
+                                       value=None) # review_scores.review_scores_rating
+        search_dropdown = gr.Dropdown(
+            choices=PROPERTY_TYPES,
+            value=None,
+            label="app_type"
+    )
     gr.ChatInterface(   
         fn=slow_echo,
         chatbot=chatbot,
@@ -34,7 +44,7 @@ with gr.Blocks() as demo:
         flagging_options=["Like", "Spam", "Inappropriate", "Other"],
         multimodal=True,
         textbox=gr.MultimodalTextbox(file_count="single", file_types=["image"], sources=["upload"]),
-        autofocus=True
+        additional_inputs=[rank_slider, search_dropdown],
     )
     with gr.Row():
         clear_session = gr.Button("New Chat")

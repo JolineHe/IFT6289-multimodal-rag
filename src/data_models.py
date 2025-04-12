@@ -31,7 +31,7 @@ class Address(BaseModel):
     country_code: str
     location: Location
 
-class Image_Describ(BaseModel):
+class ImageDescrib(BaseModel):
     thumbnail_url: str
     medium_url: str
     picture_url: str
@@ -46,6 +46,14 @@ class Review(BaseModel):
     reviewer_name: Optional[str] = None
     comments: Optional[str] = None
 
+class ReviewScores(BaseModel):
+    review_scores_accuracy: int
+    review_scores_cleanliness: int
+    review_scores_checkin: int
+    review_scores_communication: int
+    review_scores_location: int
+    review_scores_value: int
+    review_scores_rating: int
 
 class Listing(BaseModel):
     _id: int

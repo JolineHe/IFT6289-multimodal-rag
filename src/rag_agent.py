@@ -1,7 +1,6 @@
-from typing import List, Optional, Dict, Any
-from pymongo import MongoClient
+from typing import List, Optional
 from pydantic import BaseModel
-from data_models import Address, Image_Describ
+from data_models import Address, ImageDescrib
 from hybrid_search import HybridSearch
 from multimodal_search import MultiModalSearch
 from utils.logger import LOG
@@ -19,7 +18,7 @@ class SearchResultItem(BaseModel):
     description: Optional[str] = None
     neighborhood_overview: Optional[str] = None
     notes: Optional[str] = None
-    images: Image_Describ
+    images: ImageDescrib
     search_score: Optional[float] = None
     reviews: Optional[List[Dict[str, Any]]] = None
 
@@ -166,7 +165,7 @@ if __name__ == "__main__":
 
     rag_agent = RagAgent(collection)
     # load an image
-    img_path = './data/image1.png'
+    img_path = '../data/image_plateau_montRoyal.png'
 
     query_text = """
     I want to stay in a place that's warm and friendly, 
