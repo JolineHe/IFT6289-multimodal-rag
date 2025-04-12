@@ -21,6 +21,7 @@ class SearchResultItem(BaseModel):
     notes: Optional[str] = None
     images: Image_Describ
     search_score: Optional[float] = None
+    reviews: Optional[List[Dict[str, Any]]] = None
 
 
 class RagAgent:
@@ -65,10 +66,11 @@ class RagAgent:
             Notes: {row.notes}
             Search Score: {row.search_score}
             Image URL: {row.images}
+            Reviews: {row.reviews}
             """,
             'score': row.search_score
         } for row in search_results_models]
-
+        LOG.info(f"context: {context}")
         return context
 
     def response_to_user(self, query: Dict[str, Any], session_id: str = "default") -> str:

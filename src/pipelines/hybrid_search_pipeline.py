@@ -84,7 +84,8 @@ def build_hybrid_search_stage(
                 "neighborhood_overview": "$docs.neighborhood_overview",
                 "notes": "$docs.notes",
                 "images": "$docs.images",
-                "search_score": "$vs_score"
+                "search_score": "$vs_score",
+                "reviews": "$docs.reviews"
             }
         },
         {
@@ -141,7 +142,8 @@ def build_hybrid_search_stage(
                             "description": "$docs.description",
                             "neighborhood_overview": "$docs.neighborhood_overview",
                             "notes": "$docs.notes",
-                            "images": "$docs.images"
+                            "images": "$docs.images",
+                            "reviews": "$docs.reviews"
                         }
                     }
                 ]
@@ -158,6 +160,7 @@ def build_hybrid_search_stage(
                 "neighborhood_overview": {"$first": "$neighborhood_overview"},
                 "notes": {"$first": "$notes"},
                 "images": {"$first": "$images"},
+                "reviews": {"$first": "$reviews"},
                 "vs_score": {"$max": "$vs_score"},
                 "fts_score": {"$max": "$fts_score"}
             }
@@ -173,6 +176,7 @@ def build_hybrid_search_stage(
                 "neighborhood_overview": 1,
                 "notes": 1,
                 "images": 1,
+                "reviews": 1,
                 "vs_score": {"$ifNull": ["$vs_score", 0]},
                 "fts_score": {"$ifNull": ["$fts_score", 0]}
             }
@@ -189,6 +193,7 @@ def build_hybrid_search_stage(
                 "neighborhood_overview": 1,
                 "notes": 1,
                 "images": 1,
+                "reviews": 1,
                 "vs_score": 1,
                 "fts_score": 1
             }
