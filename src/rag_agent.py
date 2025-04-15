@@ -1,9 +1,11 @@
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
+from pymongo import MongoClient
 from data_models import Address, ImageDescrib
 from hybrid_search import HybridSearch
 from multimodal_search import MultiModalSearch
 from utils.logger import LOG
+from utils.mongodb import get_collection
 from utils.session_history import get_session_history
 import os
 from langchain.chat_models import ChatOpenAI
@@ -11,6 +13,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
 class SearchResultItem(BaseModel):
+    id: int = Field(alias='_id')
     name: str
     accommodates: Optional[int] = None
     address: Address
@@ -89,9 +92,7 @@ class RagAgent:
             ("system", "You are a query classifier. Your task is to determine if the user is asking about Airbnb property recommendations. Respond with only 'yes' or 'no'."),
             ("human", "Is this query about Airbnb property recommendations? Query: {query}")
         ])
-        LOG.info(f"query: {query}")
-        query_text = query.get('text')
-        query_files = query.get('files')
+        query_text, query_files = query.get('text'), query.get('files')
         LOG.info(f"query_text: {query_text}")
         LOG.info(f"query_files: {query_files}")
         query_type_response = self.chat(query_type_prompt.format_messages(query=query_text))
@@ -154,22 +155,15 @@ class RagAgent:
 
 
 if __name__ == "__main__":
-    uri = os.getenv('MONGODB_URI')
-    client = MongoClient(uri)
-
-    db_name = 'airbnb_dataset'
-    collection_name = 'airbnb_embeddings'
-
-    db = client[db_name]
-    collection = db[collection_name]
+    collection = get_collection()
 
     rag_agent = RagAgent(collection)
     # load an image
     img_path = '../data/image_plateau_montRoyal.png'
 
     query_text = """
-    I want to stay in a place that's warm and friendly, 
-    and not too far from resturants, can you recommend a place that is similar as the image I provide? 
-    Include a reason as to why you've chosen your selection. Also give me the airbnb link and image link
+    Stay in a cozy studio in Copacabana RJ with amazing view, near beach and metro, equipped kitchen, and security features.
     """
-    rag_agent.response_to_user({'text': query_text, 'files': [img_path]})
+    query = {'text': query_text, 'files': []}
+    print(len(rag_agent.retrieve_knowledge(query)))
+    # rag_agent.response_to_user({'text': query_text, 'files': [img_path]})
