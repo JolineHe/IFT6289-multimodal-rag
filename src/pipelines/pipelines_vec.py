@@ -9,6 +9,7 @@
 @Desc   : Please enter here
 '''
 from typing import List, Dict, Any
+import re
 
 TEXT_EMBED_FIELD_NAME = "text_embeddings"
 IMG_EMBED_FIELD_NAME = "image_embeddings"
@@ -20,6 +21,8 @@ RETURN_KEYS = ['name','accommodates','address','summary',  'description', 'neigh
 COLLECTION_NAME = "airbnb_embeddings"
 NUM_CANDIDATES = 150
 TOP_K = 20
+
+
 
 def pipeline_vec_single_search(
     query_vector: List[float],
@@ -209,4 +212,71 @@ def pipeline_vec_multimodal_search(
         {"$limit": TOP_K}
     ]
     return pipeline
+
+def post_filter_params_pipeline(params):
+    match_list = []
+
+    search_path = "address.country"
+    addr = '' if not params.get(search_path) else params[search_path]
+    if not addr=='':
+        addr = re.compile(addr)
+        match_list.append({search_path:  {"$e": addr}})
+
+    search_path = "bedrooms"
+    if params.get(search_path):
+        match_list.append({search_path:  {"$gte": params.get(search_path)}})
+    print(match_list)
+    match_stage = {
+        "filter": {
+            "$and": match_list
+        }
+    }
+
+    additional_stages = [match_stage]
+
+    return additional_stages
+
+def post_boosting_pipeline():
+    review_average_stage = {
+        "$addFields": {
+            "averageReviewScore": {
+                "$divide": [
+                    {
+                        "$add": [
+                            "$review_scores.review_scores_accuracy",
+                            "$review_scores.review_scores_cleanliness",
+                            "$review_scores.review_scores_checkin",
+                            "$review_scores.review_scores_communication",
+                            "$review_scores.review_scores_location",
+                            "$review_scores.review_scores_value",
+                        ]
+                    },
+                    6  # Divide by the number of review score types to get the average
+                ]
+            },
+            # Calculate a score boost factor based on the number of reviews
+            "reviewCountBoost": "$number_of_reviews"
+        }
+    }
+
+    weighting_stage = {
+        "$addFields": {
+            "boost_score": {
+                # Example formula that combines average review score and review count boost
+                "$add": [
+                    {"$multiply": ["$averageReviewScore", 0.9]},  # Weighted average review score
+                    {"$multiply": ["$reviewCountBoost", 0.1]}  # Weighted review count boost
+                ]
+            }
+        }
+    }
+
+    # Apply the combinedScore for sorting
+    sorting_stage_sort = {
+        "$sort": {"boost_score": -1}  # Descending order to boost higher combined scores
+    }
+
+    additional_stages = [review_average_stage, weighting_stage, sorting_stage_sort]
+
+    return additional_stages
 

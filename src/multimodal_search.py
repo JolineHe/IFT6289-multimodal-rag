@@ -12,9 +12,9 @@ import openai
 import os
 from dotenv import load_dotenv
 
-from utils.embedding import get_img_embedding, get_text_embedding
-from pipelines.pipelines_vec import pipeline_vec_single_search, pipeline_vec_multimodal_search
-from utils.check_files import  is_image_file
+from src.utils.embedding import get_img_embedding, get_text_embedding
+from src.pipelines.pipelines_vec import pipeline_vec_single_search, pipeline_vec_multimodal_search, post_boosting_pipeline, post_filter_params_pipeline
+from src.utils.check_files import  is_image_file
 
 TEXT_EMBED_FIELD_NAME = "text_embeddings"
 IMG_EMBED_FIELD_NAME = "image_embeddings"
@@ -103,10 +103,10 @@ class MultiSearch_Twopipe:
         return merged_results[:TOP_K]
 
     def do_search(self, user_query, alpha_text=0.5):
-        user_query_text = user_query[0]
+        user_query_text = user_query['text']
         user_query_img_path = ''
         if len(user_query) > 1:
-            user_query_img_path = user_query[1]
+            user_query_img_path = user_query['files'][0]
         query_embedding_text = get_text_embedding(user_query_text)
         query_embedding_img = get_img_embedding(user_query_img_path)
 
@@ -130,14 +130,15 @@ class MultiSearch_Onepipe:
         self.collection = collection
 
     def do_search(self, user_query, alpha_text=0.5):
-        user_query_text = user_query[0]
+        user_query_text = user_query['text']
         user_query_img_path = ''
         if len(user_query) > 1:
-            user_query_img_path = user_query[1]
+            user_query_img_path = user_query['files'][0]
         query_embedding_text = get_text_embedding(user_query_text)
         query_embedding_img = get_img_embedding(user_query_img_path)
 
-        pipeline = pipeline_vec_multimodal_search(query_embedding_text, query_embedding_img, alpha_text)
+        pipeline = pipeline_vec_multimodal_search(
+            query_embedding_text, query_embedding_img, alpha_text)
         results = self.collection.aggregate(pipeline)
 
         return results
@@ -146,15 +147,41 @@ class HybridSearch_Onepipe:
     def __init__(self, collection):
         self.collection = collection
 
-    def do_search(self, query, alpha_text=0.5):
+    def do_search(self, user_query, alpha_text=0.5):
         # Logic for hybrid search (combining single and multi search)
-        pass
+        user_query_text = user_query['text']
+        user_query_img_path = ''
+        if len(user_query.get('files')) >= 1:
+            user_query_img_path = user_query['files'][0]
+        query_embedding_text = get_text_embedding(user_query_text)
+        query_embedding_img = get_img_embedding(user_query_img_path) if not user_query_img_path=='' else None
+
+        results = None
+        addition_query = {k: v for k, v in user_query.items() if k not in ['text', 'files']}
+        pipeline_filter = post_filter_params_pipeline(addition_query)
+        pipeline_boost = post_boosting_pipeline()
+
+        if not query_embedding_text is None:
+            pipeline_text = pipeline_vec_single_search(query_embedding_text, 'text')
+            pipeline_text[0]['$vectorSearch']['filter'] = pipeline_filter
+            pipeline = pipeline_text #+ pipeline_boost
+            results = list(self.collection.aggregate(pipeline))
+
+
+        if query_embedding_img is not None:
+            pipeline_image = pipeline_vec_single_search(query_embedding_img, 'image')
+            pipeline = pipeline_image+pipeline_boost
+            results = list(self.collection.aggregate(pipeline))
+
+
+
+        return results
 
 class MultiModalSearch():
     def __init__(self,collection):
         self.collection = collection
 
-    def _get_search_engine(self,user_query,params_others=dict()):
+    def _get_search_engine(self,user_query):
         '''
         If all query vectors exist, in default try multimodal search in one pipeline;
         otherwise try two pipelines if params_others is empty.
@@ -166,16 +193,16 @@ class MultiModalSearch():
         :return: None
         :rtype: None
         '''
-        user_query_text = user_query[0]
+        user_query_text = user_query['text']
         q_embed_text = get_text_embedding(user_query_text)
         text_flag = q_embed_text is not None
 
         img_flag = False
-        if len(user_query) > 1:
-            user_query_img_path = user_query[1]
+        if len(user_query.get('files')) >= 1:
+            user_query_img_path = user_query['files'][0]
             img_flag = is_image_file(user_query_img_path)
 
-        param_flag = not not params_others
+        param_flag = len(user_query.keys())>2 # more than text and files keys, have other param keys
 
         if img_flag and text_flag: # all query vectors exist, default try one pipeline
             if not param_flag:
@@ -193,8 +220,8 @@ class MultiModalSearch():
                 self.search_engine = HybridSearch_Onepipe(self.collection)
 
 
-    def do_search(self, user_query, alpha_text=0.5, other_params = dict()):
-        self._get_search_engine(user_query, other_params)
+    def do_search(self, user_query, alpha_text=0.5):
+        self._get_search_engine(user_query)
         return self.search_engine.do_search(user_query, alpha_text) #, self.search_type
 
 if __name__ == "__main__":
@@ -205,12 +232,20 @@ if __name__ == "__main__":
     img_path = '../data/image_plateau_montRoyal.png'
     alpha_text = 0.3
 
+    aquery = {
+        'text': "I want to stay in a cozy apartment at Plateau Mont Royal",
+        'files': [img_path],
+        # 'bedrooms': 1,
+        # 'address.country': 'Canada',
+    }
 
     vector_search_mongodb = MultiModalSearch(collection)
-    results, search_type = vector_search_mongodb.do_search([
-        "I want to stay in a cozy apartment at Plateau Mont Royal",
-        img_path], alpha_text=alpha_text, other_params={}
-    )
+    results = vector_search_mongodb.do_search(
+        aquery, alpha_text=alpha_text)
+    # results, search_type = vector_search_mongodb.do_search([
+    #     "I want to stay in a cozy apartment at Plateau Mont Royal",
+    #     img_path], alpha_text=alpha_text, other_params={}
+    # )
     # print(results)
     # # displaying scores and image to evaluate
     """
@@ -218,8 +253,8 @@ if __name__ == "__main__":
     And uncomment 
     "return self.search_engine.do_search(user_query, alpha_text) #, self.search_type"
     """
-    from utils.evl_search_score import evl_search_result
-    evl_search_result(results, img_path, title=f'search_by_multimodal-text{alpha_text}',savepath=f'../data/{search_type}')
+    # from utils.evl_search_score import evl_search_result
+    # evl_search_result(results, img_path, title=f'search_by_multimodal-text{alpha_text}',savepath=f'../data/{search_type}')
 
     # results, search_type = vector_search_mongodb.do_search([
     #     "recommend a cozy apartment next to metro and similar as the image",
