@@ -13,7 +13,7 @@ import random
 from src.utils.mongodb import get_collection
 import numpy as np
 
-user_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.5)
+user_llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.5)
 rag_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
