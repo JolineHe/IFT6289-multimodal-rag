@@ -1,22 +1,12 @@
 import os
 from datasets import load_dataset
 from bson import json_util
-from dotenv import load_dotenv
 from pymongo import MongoClient
+from database.mongodb_utils import get_collection
 
-# Load environment variables from .env file
-load_dotenv()  
 
 def ingest_data():
-    # MongoDB Atlas URI and client setup
-    uri = os.getenv('MONGODB_URI')
-    client = MongoClient(uri)
-
-    # Change to the appropriate database and collection names
-    db_name = 'airbnb_dataset'  # Change this to your actual database name
-    collection_name = 'airbnb_embeddings'  # Change this to your actual collection name
-
-    collection = client[db_name][collection_name]
+    collection = get_collection()
 
     #NOTE: https://huggingface.co/datasets/MongoDB/airbnb_embeddings
     #NOTE: This dataset contains several records with datapoint representing an airbnb listing.

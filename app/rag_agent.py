@@ -1,16 +1,13 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from pymongo import MongoClient
 from data_models import Address, ImageDescrib
 from hybrid_search import HybridSearch
 from multimodal_search import MultiModalSearch
 from utils.logger import LOG
 from utils.mongodb import get_collection
 from utils.session_history import get_session_history
-import os
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
-from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
 class SearchResultItem(BaseModel):
     id: int = Field(alias='_id')

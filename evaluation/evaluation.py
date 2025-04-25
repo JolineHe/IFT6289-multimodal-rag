@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Tuple
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import random
-from src.utils.mongodb import get_collection
+from app.utils.mongodb import get_collection
 import numpy as np
 
 user_llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.5)
