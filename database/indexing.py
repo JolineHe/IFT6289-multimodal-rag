@@ -1,7 +1,6 @@
 from pymongo.operations import SearchIndexModel
 import time
-from mongodb import get_collection
-
+from database.mongodb_utils import get_collection
 # settings of database and index
 TEXT_EMBED_FIELD_NAME = "text_embeddings"
 IMG_EMBED_FIELD_NAME = "image_embeddings"
@@ -54,7 +53,6 @@ def create_vector_search_index_model(index_name, type='text'):
         },
         name=index_name,
     )
-
     return vector_search_index_model, index_name
 
 ##create full text search index

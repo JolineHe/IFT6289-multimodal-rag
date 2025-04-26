@@ -5,11 +5,11 @@ from typing import List, Dict, Any
 def build_hybrid_search_stage(
     query_vector: List[float],
     query_text: str = "Fully furnished 3+1 flat decorated with vintage style.",
-    vector_weight: float = 0.7,
-    full_text_weight: float = 0.3,
+    vector_weight: float = 0.2,
+    full_text_weight: float = 0.8,
     num_candidates: int = 100,
     limit: int = 20,
-    final_limit: int = 5) -> List[Dict[str, Any]]:
+    final_limit: int = 10) -> List[Dict[str, Any]]:
     """Performs hybrid search combining vector and full-text search results.
 
     This pipeline executes both vector similarity search and full-text search on MongoDB collections,
