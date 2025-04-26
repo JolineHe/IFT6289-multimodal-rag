@@ -1,4 +1,4 @@
-from rag_agent import RagAgent
+from rag import RagAgent
 import gradio as gr
 import time
 from utils.mongodb import get_collection
