@@ -4,7 +4,6 @@ from data_models import Address, ImageDescrib
 from hybrid_search import HybridSearch
 from multimodal_search import MultiModalSearch
 from utils.logger import LOG
-from utils.mongodb import get_collection
 from utils.session_history import get_session_history
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -43,7 +42,7 @@ class RagAgent:
             get_knowledge = self.hybrid_search.do_search(query.get('text'))
         else:
             LOG.info(f"query: {query}")
-            get_knowledge = self.multimodal_search.do_search([query.get('text'), query.get('files')[0]])
+            get_knowledge = self.multimodal_search.do_search(query.get('text'), query.get('files')[0])
 
         # Check if there are any results
         if not get_knowledge:
@@ -149,18 +148,3 @@ class RagAgent:
         LOG.info(f"- System Response:\n{system_response}\n")
 
         return system_response
-
-
-if __name__ == "__main__":
-    collection = get_collection()
-
-    rag_agent = RagAgent(collection)
-    # load an image
-    img_path = '../data/image_plateau_montRoyal.png'
-
-    query_text = """
-    Stay in a cozy studio in Copacabana RJ with amazing view, near beach and metro, equipped kitchen, and security features.
-    """
-    query = {'text': query_text, 'files': []}
-    print(len(rag_agent.retrieve_knowledge(query)))
-    # rag_agent.response_to_user({'text': query_text, 'files': [img_path]})

@@ -12,24 +12,24 @@ os.environ['CURL_CA_BUNDLE'] = '' # for image encoder correctly being used
 
 
 def get_text_embedding(text):
-        if not text or not isinstance(text, str):
-            print("text is not a string")
-            return None
-        try:
-            embedding = openai.embeddings.create(
-                input=text,
-                model=TEXT_EMBED_MODEL, dimensions=TEXT_EMBED_SIZE).data[0].embedding
-            return embedding
-        except Exception as e:
-            print(f"Error in get_text_embedding: {e}")
-            return None
+    if not text or not isinstance(text, str):
+        print("text is not a string")
+        return None
+    try:
+        embedding = openai.embeddings.create(
+            input=text,
+            model=TEXT_EMBED_MODEL, dimensions=TEXT_EMBED_SIZE).data[0].embedding
+        return embedding
+    except Exception as e:
+        print(f"Error in get_text_embedding: {e}")
+        return None
 
 
 def get_img_embedding(img_path):
     clip_model = CLIPModel.from_pretrained(CLIP_MODEL_PATH)
     clip_processor = CLIPProcessor.from_pretrained(CLIP_MODEL_PATH, use_fast=True)
     if not os.path.exists(img_path):
-            return None
+        return None
     try:
         image = Image.open(img_path).convert("RGB")
         inputs = clip_processor(images=image, return_tensors="pt")

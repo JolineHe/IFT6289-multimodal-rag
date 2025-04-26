@@ -21,32 +21,16 @@ COLLECTION_NAME = "airbnb_embeddings"
 NUM_CANDIDATES = 150
 TOP_K = 20
 
-def pipeline_vec_single_search(
-    query_vector: List[float],
-    type: str = 'text') -> List[Dict[str, Any]]:
-    """Performs hybrid search combining vector and full-text search results.
-
-    This pipeline executes both vector similarity search and full-text search on MongoDB collections,
-    combining the results using Reciprocal Rank Fusion (RRF). The vector search finds semantically
-    similar documents based on embeddings, while full-text search matches text patterns.
-
-    Args:
-        query_vector (List[float]): Vector embedding of the search query
-        type (str): Denote the type of query_vector, equals to one value from ['text', 'image']
-    Returns:
-        List[Dict[str, Any]]: Combined and ranked search results, each containing document metadata
-    """
-    assert type in ['text', 'image']
-    ind_name = f"{vc_index_name_prefix}_{type}"
-
-    score_name = f'{type}_{SCORE_NAME_BASIC}'
-    embed_name = IMG_EMBED_FIELD_NAME if type=='image' else TEXT_EMBED_FIELD_NAME
+def pipeline_image_only_search(query_vector: List[float]) -> List[Dict[str, Any]]:
+    ind_name = "vector_index_image"
+    score_name = "image_search_score"
+    embed_name = IMG_EMBED_FIELD_NAME
 
     pipeline = []
     pipeline.append({
         "$vectorSearch": {
             "index": ind_name,
-            "path": embed_name, #"image_embeddings",
+            "path": embed_name, 
             "queryVector": query_vector,
             "numCandidates": NUM_CANDIDATES,
             "limit": TOP_K,
@@ -59,10 +43,9 @@ def pipeline_vec_single_search(
     pipeline.append({
         "$project": out_template
     })
-
     return pipeline
 
-def pipeline_vec_multimodal_search(
+def pipeline_multimodal_search(
     query_vector_text: List[float],
     query_vector_image: List[float],
     text_weight: float = 0.4) -> List[Dict[str, Any]]:
