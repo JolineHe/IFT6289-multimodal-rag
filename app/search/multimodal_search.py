@@ -8,8 +8,8 @@
 @Project: IFT6289-multimodal-rag 
 @Desc   : Please enter here
 '''
-from utils.embedding import get_img_embedding, get_text_embedding
-from search.pipelines.multimodal_pipelines import pipeline_image_only_search, pipeline_multimodal_search
+from app.utils.embedding import get_img_embedding, get_text_embedding
+from app.search.pipelines.multimodal_search_pipelines import pipeline_image_only_search, pipeline_multimodal_search
 
 
 class MultiModalSearch():

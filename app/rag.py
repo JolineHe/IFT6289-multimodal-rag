@@ -1,11 +1,11 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from data_models import Address, ImageDescrib
-from search.hybrid_search import HybridSearch
-from search.multimodal_search import MultiModalSearch
+from app.data_models import Address, ImageDescrib
+from app.search.hybrid_search import HybridSearch
+from app.search.multimodal_search import MultiModalSearch
 from app.search.semantic_search import SemanticSearch
-from utils.logger import LOG
-from utils.session_history import get_session_history
+from app.utils.logger import LOG
+from app.utils.session_history import get_session_history
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 

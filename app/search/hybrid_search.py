@@ -1,5 +1,5 @@
-from search.pipelines.hybrid_search_pipeline import build_hybrid_search_stage
-from utils.embedding import get_text_embedding
+from app.search.pipelines.hybrid_search_pipeline import build_hybrid_search_stage
+from app.utils.embedding import get_text_embedding
 
 class HybridSearch():
     def __init__(self, collection) -> None:

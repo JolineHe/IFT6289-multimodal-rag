@@ -1,3 +1,6 @@
+from app.utils.embedding import get_text_embedding
+
+
 class SemanticSearch():
     def __init__(self, collection) -> None:
         self.collection = collection
@@ -5,26 +8,24 @@ class SemanticSearch():
     def _build_pipeline(self, query_embedding: list[float]) -> list[dict]:
         pipeline = [
             {
-                    "$vectorSearch": {
+                "$vectorSearch": {
                     "index": "vector_index_text",
                     "queryVector": query_embedding,
-                    "path": "embeddings",
-                    "exact": True,
-                    "limit": 5
-                    }
-            }, {
-                    "$project": {
-                    "_id": 0,
-                    "summary": 1,
-                    "listing_url": 1,
-                    "score": {
-                        "$meta": "vectorSearchScore"
-                    }
-                    }
+                    "path": "text_embeddings",
+                    "numCandidates": 150,
+                    "limit": 10,
+                    "scoreField": "search_score"
+                }
+            }, 
+            {
+                "$addFields": {
+                    "search_score": {"$meta": "vectorSearchScore"}
+                }
             }
         ]
         return pipeline
 
     def do_search(self, text_query: str) -> list[dict]:
-        pipeline = self._build_pipeline(text_query)       
+        query_embedding = get_text_embedding(text_query)
+        pipeline = self._build_pipeline(query_embedding)       
         return self.collection.aggregate(pipeline)

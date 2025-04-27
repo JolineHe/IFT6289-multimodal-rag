@@ -1,4 +1,4 @@
-class TextSearch():
+class FullTextSearch():
     def __init__(self, collection) -> None:
         self.collection = collection
 

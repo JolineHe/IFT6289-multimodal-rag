@@ -37,7 +37,7 @@ def pipeline_image_only_search(query_vector: List[float]) -> List[Dict[str, Any]
             "scoreField": score_name
         }
     })
-    out_template = {key: 1 for key in RETURN_KEYS + [score_name]}
+    out_template = {key: 1 for key in RETURN_KEYS}
     out_template[score_name] = {"$meta": "vectorSearchScore"}
     out_template["_id"] = 1
     pipeline.append({
