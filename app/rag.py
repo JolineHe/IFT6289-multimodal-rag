@@ -41,7 +41,7 @@ class RagAgent:
         """
         if len(query.get('files', [])) == 0:
             LOG.info(f"query: {query}")
-            get_knowledge = self.semantic_search.do_search(query.get('text'))
+            get_knowledge = self.hybrid_search.do_search(query.get('text'))
         else:
             LOG.info(f"query: {query}")
             get_knowledge = self.multimodal_search.do_search(query.get('text'), query.get('files')[0])

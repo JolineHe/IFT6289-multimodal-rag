@@ -29,7 +29,7 @@ def build_hybrid_search_stage(
         List[Dict[str, Any]]: Combined and ranked search results, each containing document metadata
     """
     VECTOR_INDEX_NAME = "vector_index_text"
-    VECTOR_QUERY_PATH = "text_embeddings"
+    VECTOR_QUERY_PATH = "description_embedding"
     FULL_TEXT_INDEX_NAME = "full_text_search_index"
     FULL_TEXT_QUERY_PATH = "description"
     COLLECTION_NAME = "airbnb_embeddings"
