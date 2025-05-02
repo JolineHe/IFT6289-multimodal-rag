@@ -10,7 +10,7 @@
 '''
 from typing import List, Dict, Any
 
-TEXT_EMBED_FIELD_NAME = "text_embeddings"
+TEXT_EMBED_FIELD_NAME = "description_embedding"
 IMG_EMBED_FIELD_NAME = "image_embeddings"
 vc_index_name_prefix = "vector_index"
 ind_suffix = ['text','image']
@@ -46,9 +46,9 @@ def pipeline_image_only_search(query_vector: List[float]) -> List[Dict[str, Any]
     return pipeline
 
 def pipeline_multimodal_search(
-    query_vector_text: List[float],
-    query_vector_image: List[float],
-    text_weight: float = 0.4) -> List[Dict[str, Any]]:
+    query_text_vector: List[float],
+    query_img_vector: List[float],
+    alpha_text: float = 0.4) -> List[Dict[str, Any]]:
     """Performs hybrid search combining vector and full-text search results.
 
     This pipeline executes both vector similarity search and full-text search on MongoDB collections,
@@ -67,22 +67,22 @@ def pipeline_multimodal_search(
     flag_return_dict = {i: 1 for i in RETURN_KEYS}
 
     # embed_text, embed_img = embeddings_list
-    alpha_img, alpha_text = 1 - text_weight, text_weight
+    alpha_img = 1 - alpha_text
 
     ind_name_text, ind_name_img = f"{vc_index_name_prefix}_text", f"{vc_index_name_prefix}_image"
     score_name_text, score_name_img = f"text_{SCORE_NAME_BASIC}", f"image_{SCORE_NAME_BASIC}"
     embed_name_text, embed_name_img = TEXT_EMBED_FIELD_NAME, IMG_EMBED_FIELD_NAME
 
     # pipeline = []
-    k_param_text = 5  # Adjust this value to balance text and image scores
-    k_param_img = 5
+    k_param_text = 60  # Adjust this value to balance text and image scores
+    k_param_img = 60
 
     pipeline = [
         {
             "$vectorSearch": {
                 "index": ind_name_text,
                 "path": embed_name_text,
-                "queryVector": query_vector_text,
+                "queryVector": query_text_vector,
                 "numCandidates": NUM_CANDIDATES,
                 "limit": TOP_K
             }
@@ -125,7 +125,7 @@ def pipeline_multimodal_search(
                         "$vectorSearch": {
                             "index": ind_name_img,
                             "path": embed_name_img,
-                            "queryVector": query_vector_image,
+                            "queryVector": query_img_vector,
                             "numCandidates": NUM_CANDIDATES,
                             "limit": TOP_K
                         }

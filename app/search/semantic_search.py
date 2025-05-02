@@ -1,4 +1,4 @@
-from app.utils.embedding import get_text_embedding
+from utils.embedding import get_text_embedding
 
 
 class SemanticSearch():
@@ -11,7 +11,7 @@ class SemanticSearch():
                 "$vectorSearch": {
                     "index": "vector_index_text",
                     "queryVector": query_embedding,
-                    "path": "text_embeddings",
+                    "path": "description_embedding",
                     "numCandidates": 150,
                     "limit": 10,
                     "scoreField": "search_score"

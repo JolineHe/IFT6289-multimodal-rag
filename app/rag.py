@@ -1,11 +1,11 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from app.data_models import Address, ImageDescrib
-from app.search.hybrid_search import HybridSearch
-from app.search.multimodal_search import MultiModalSearch
-from app.search.semantic_search import SemanticSearch
-from app.utils.logger import LOG
-from app.utils.session_history import get_session_history
+from data_models import Address, ImageDescrib
+from search.hybrid_search import HybridSearch
+from search.multimodal_search import MultiModalSearch
+from search.semantic_search import SemanticSearch
+from utils.logger import LOG
+from utils.session_history import get_session_history
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 
@@ -27,6 +27,7 @@ class RagAgent:
     def __init__(self, collection):
         self.collection = collection
         self.hybrid_search = HybridSearch(collection)
+        self.semantic_search = SemanticSearch(collection)
         self.multimodal_search = MultiModalSearch(collection)
         self.chat = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
@@ -40,7 +41,7 @@ class RagAgent:
         """
         if len(query.get('files', [])) == 0:
             LOG.info(f"query: {query}")
-            get_knowledge = self.hybrid_search.do_search(query.get('text'))
+            get_knowledge = self.semantic_search.do_search(query.get('text'))
         else:
             LOG.info(f"query: {query}")
             get_knowledge = self.multimodal_search.do_search(query.get('text'), query.get('files')[0])

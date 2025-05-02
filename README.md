@@ -4,7 +4,7 @@
 - MongoDB database: https://cloud.mongodb.com/v2/67dce45371a72379b3f838e7#/clusters/atlasSearch/6289NLP
 
 ## Setup variables in your virtual environment
-create a .env with your corresponding HF_TOKEN, MONGODB_URI and OPENAI_API_KEY
+create .env from .env.template and put the values.
 
 ## Setup database
 Run ONLY ONCE:
@@ -16,12 +16,8 @@ Run ONLY ONCE:
 ```bash
 python ./src/utils/indexing.py
 ```
-We have created three indexes:
-- 1 full text search index on xxx
-- 1 vector search index on yyy
-- 1 vector search index on zzz
 
 ## Run the app
 ```bash
-python ./src/app.py
+python ./app/my_app.py
 ```

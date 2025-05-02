@@ -1,17 +1,21 @@
 import sys
 import os
-
-# 添加项目根目录到Python路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(current_dir))
-sys.path.append(project_root)
-
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from PIL import Image
 from typing import List, Dict, Any, Tuple
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import random
 from app.utils.mongodb import get_collection
 import numpy as np
+import requests
+
+
+# 添加项目根目录到Python路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(current_dir))
+sys.path.append(project_root)
+
 
 user_llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.5)
 rag_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
@@ -34,7 +38,8 @@ def get_random_properties(num_properties: int = 20) -> Tuple[List[Dict[str, Any]
         properties.append({
             'id': doc.get('_id', ''),
             'name': doc.get('name', ''),
-            'description': doc.get('description', '')          
+            'description': doc.get('description', ''),
+            'image_url': doc.get('images').get('picture_url'),
         })
         ids.append(doc.get('_id', ''))
     return properties, ids
@@ -69,7 +74,8 @@ def generate_queries(properties: List[Dict[str, str]]) -> List[Dict[str, str]]:
             'id': property_info['id'],
             'name': property_info['name'],
             'description': property_info['description'],
-            'generated_query': query
+            'generated_query': query,
+            'image_url': property_info['image_url']
         })
     return results
 
@@ -117,6 +123,55 @@ def check_top_k_positions(arr: np.ndarray, value: int, positions: list[int] = [1
     return np.array(results)
 
 
+class Gen_MultimodalEvlDataset:
+    '''
+    Rewrite the pure text query or ground truth to include image information,
+    where the image information is created by Image Caption Model.
+    '''
+    def __init__(self):
+        # Load model and processor
+        self.processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base",use_fast=True)
+        self.model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+
+    def _gen_caption(self,img_path):
+        # Load image (you can also use a local path)
+        try:
+            image = Image.open(requests.get(img_path, stream=True).raw).convert("RGB")
+            # Preprocess and generate
+            inputs = self.processor(image, return_tensors="pt")
+            out = self.model.generate(**inputs)
+            caption = self.processor.decode(out[0], skip_special_tokens=True)
+            return caption
+        except:
+            return ""
+
+
+    def gen_combined_query(self,query): # for each sample
+        image_caption = self._gen_caption(query['files'][0])
+        combined_query = f"{query['text']}. \n --Image looks like: {image_caption}"
+        return combined_query
+
+    def gen_combined_retrieved(self,retrieved_list): # for the whole list
+        results = []
+        for i in retrieved_list:
+            descrip = i['description'][0]
+            image_path = i['images'][0]['picture_url']
+            image_caption = self._gen_caption(image_path)
+            combined_query = f"{descrip}. \n --Image looks like: {image_caption}"
+            results.append(combined_query)
+
+        return results
+
+    def gen_combined_gt(self,ground_list):
+        results = []
+        for i in ground_list:
+            desciption = i['description']
+            image_path = i['image_url']
+            image_caption = self._gen_caption(image_path)
+            combined_query = f"{desciption}. \n --Image looks like: {image_caption}"
+            results.append(combined_query)
+
+        return results
 
 
 

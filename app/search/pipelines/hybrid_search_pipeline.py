@@ -5,8 +5,8 @@ from typing import List, Dict, Any
 def build_hybrid_search_stage(
     query_vector: List[float],
     query_text: str = "Fully furnished 3+1 flat decorated with vintage style.",
-    vector_weight: float = 0.2,
-    full_text_weight: float = 0.8,
+    alpha_vector: float = 0.8,
+    # full_text: float = 0.8,
     num_candidates: int = 100,
     limit: int = 20,
     final_limit: int = 10) -> List[Dict[str, Any]]:
@@ -59,7 +59,7 @@ def build_hybrid_search_stage(
             "$addFields": {
                 "vs_score": {
                     "$multiply": [
-                        vector_weight,
+                        alpha_vector,
                         {
                             "$divide": [
                                 1.0,
@@ -117,7 +117,7 @@ def build_hybrid_search_stage(
                         "$addFields": {
                             "fts_score": {
                                 "$multiply": [
-                                    full_text_weight,
+                                    1-alpha_vector,
                                     {
                                         "$divide": [
                                             1.0,

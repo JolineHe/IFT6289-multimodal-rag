@@ -28,10 +28,28 @@ def get_text_embedding(text):
 def get_img_embedding(img_path):
     clip_model = CLIPModel.from_pretrained(CLIP_MODEL_PATH)
     clip_processor = CLIPProcessor.from_pretrained(CLIP_MODEL_PATH, use_fast=True)
-    if not os.path.exists(img_path):
-        return None
     try:
-        image = Image.open(img_path).convert("RGB")
+        import re
+        import requests
+        
+        # Check if img_path is a URL using regex
+        url_pattern = re.compile(
+            r'^https?://'  # http:// or https://
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
+            r'localhost|'  # localhost...
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+            r'(?::\d+)?'  # optional port
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        
+        print(img_path)
+        if url_pattern.match(img_path):
+            try:
+                image = Image.open(requests.get(img_path, stream=True).raw).convert("RGB")
+            except:
+                image = Image.open("files/error.jpg").convert("RGB")
+        else:
+            image = Image.open(img_path).convert("RGB")
+            
         inputs = clip_processor(images=image, return_tensors="pt")
         with torch.no_grad():
             image_embedding = clip_model.get_image_features(**inputs)
